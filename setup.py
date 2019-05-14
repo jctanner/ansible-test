@@ -181,7 +181,7 @@ setup(
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # `pip` to create the appropriate form of executable for the target
     # platform.
-    scripts = ['bin/ansible-test'],
+    scripts = ['ansible_test/bin/ansible-test'],
     #
     # For example, the following would provide a command called `sample` which
     # executes the function `main` from this package when invoked:

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 # PYTHON_ARGCOMPLETE_OK
 """Primary entry point for ansible-test."""
 
@@ -9,9 +10,10 @@ __metaclass__ = type
 import os
 import sys
 
-import ansible_test
+from ansible_test.lib import runner
 
 if __name__ == '__main__':
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(ansible_test.__file__), 'lib', 'runner')))
+    #sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(ansible_test.__file__), 'lib', 'runner')))
+    sys.path.insert(0, os.path.dirname(runner.__file__))
     import lib.cli
     lib.cli.main()
