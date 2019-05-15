@@ -72,7 +72,7 @@ def command_sanity(args):
     install_command_requirements(args)
 
     tests = sanity_get_tests()
-    tests = [x for x in tests if x.name not in ['sanity-docs']]
+    tests = [x for x in tests if x.name not in ['sanity-docs', 'integration-aliases', 'rstcheck', 'yamllint']]
 
     if args.test:
         tests = [t for t in tests if t.name in args.test]
