@@ -240,7 +240,7 @@ def command_coverage_xml(args):
     output_files = command_coverage_combine(args)
 
     for output_file in output_files:
-        xml_name = 'test/results/reports/%s.xml' % os.path.basename(output_file)
+        xml_name = 'tests/results/reports/%s.xml' % os.path.basename(output_file)
         env = common_environment()
         env.update(dict(COVERAGE_FILE=output_file))
         run_command(args, env=env, cmd=['coverage', 'xml', '-i', '-o', xml_name])
@@ -259,6 +259,7 @@ def command_coverage_erase(args):
         path = os.path.join(COVERAGE_DIR, name)
 
         if not args.explain:
+            import epdb; epdb.st()
             os.remove(path)
 
 
