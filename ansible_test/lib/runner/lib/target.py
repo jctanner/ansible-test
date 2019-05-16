@@ -194,7 +194,7 @@ def walk_module_targets():
     """
     :rtype: collections.Iterable[TestTarget]
     """
-    path = 'lib/ansible/modules'
+    path = 'plugins/modules'
 
     for target in walk_test_targets(path, path + '/', extensions=MODULE_EXTENSIONS):
         if not target.module:
@@ -214,14 +214,14 @@ def walk_compile_targets():
     """
     :rtype: collections.Iterable[TestTarget]
     """
-    return walk_test_targets(module_path='lib/ansible/modules/', extensions=('.py',), extra_dirs=('bin',))
+    return walk_test_targets(module_path='plugins/modules/', extensions=('.py',), extra_dirs=('bin',))
 
 
 def walk_sanity_targets():
     """
     :rtype: collections.Iterable[TestTarget]
     """
-    return walk_test_targets(module_path='lib/ansible/modules/')
+    return walk_test_targets(module_path='plugins/modules/')
 
 
 def walk_posix_integration_targets(include_hidden=False):
@@ -297,6 +297,8 @@ def walk_test_targets(path=None, module_path=None, extensions=None, prefix=None,
         if root.endswith('/__pycache__'):
             continue
 
+        #import epdb; epdb.st()
+
         if '/.tox/' in root:
             continue
 
@@ -310,6 +312,9 @@ def walk_test_targets(path=None, module_path=None, extensions=None, prefix=None,
             name, ext = os.path.splitext(os.path.basename(file_name))
 
             if name.startswith('.'):
+                continue
+
+            if name.startswith('__init__'):
                 continue
 
             if extensions and ext not in extensions:

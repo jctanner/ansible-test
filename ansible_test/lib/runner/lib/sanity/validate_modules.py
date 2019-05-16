@@ -76,7 +76,8 @@ class ValidateModulesTest(SanitySingleVersion):
 
         cmd = [
             args.python_executable,
-            'test/sanity/validate-modules/validate-modules',
+            os.path.join(os.path.dirname(ansible_test.__file__), 'lib', 'sanity', 'validate-modules', 'validate-modules'),
+            #'test/sanity/validate-modules/validate-modules',
             '--format', 'json',
             '--arg-spec',
         ] + paths
@@ -101,12 +102,14 @@ class ValidateModulesTest(SanitySingleVersion):
 
             ignore[path][code] = line
 
+        '''
         if args.base_branch:
             cmd.extend([
                 '--base-branch', args.base_branch,
             ])
         else:
             display.warning('Cannot perform module comparison against the base branch. Base branch not detected when running locally.')
+        '''
 
         try:
             stdout, stderr = run_command(args, cmd, env=env, capture=True)

@@ -122,6 +122,9 @@ class TestResult(object):
         :rtype: str
         """
         path = '%s/%s/ansible-test-%s' % (self.resultsdir, directory, self.command)
+        dirname = os.path.dirname(path)
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
 
         if self.test:
             path += '-%s' % self.test
