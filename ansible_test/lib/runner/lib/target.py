@@ -207,7 +207,7 @@ def walk_units_targets():
     """
     :rtype: collections.Iterable[TestTarget]
     """
-    return walk_test_targets(path='test/units', module_path='test/units/modules/', extensions=('.py',), prefix='test_')
+    return walk_test_targets(path='tests/units', module_path='tests/units/modules/', extensions=('.py',), prefix='test_')
 
 
 def walk_compile_targets():
@@ -258,7 +258,7 @@ def walk_integration_targets():
     """
     :rtype: collections.Iterable[IntegrationTarget]
     """
-    path = 'test/integration/targets'
+    path = 'tests/integration/targets'
     modules = frozenset(t.module for t in walk_module_targets())
     paths = sorted(os.path.join(path, p) for p in os.listdir(path))
     prefixes = load_integration_prefixes()
@@ -272,7 +272,7 @@ def load_integration_prefixes():
     """
     :rtype: dict[str, str]
     """
-    path = 'test/integration'
+    path = 'tests/integration'
     names = sorted(f for f in os.listdir(path) if os.path.splitext(f)[0] == 'target-prefixes')
     prefixes = {}
 
@@ -348,7 +348,7 @@ def analyze_integration_target_dependencies(integration_targets):
     :type integration_targets: list[IntegrationTarget]
     :rtype: dict[str,set[str]]
     """
-    real_target_root = os.path.realpath('test/integration/targets') + '/'
+    real_target_root = os.path.realpath('tests/integration/targets') + '/'
 
     role_targets = [t for t in integration_targets if t.type == 'role']
     hidden_role_target_names = set(t.name for t in role_targets if 'hidden/' in t.aliases)
@@ -638,7 +638,7 @@ class IntegrationTarget(CompletionTarget):
         # Collect file paths before group expansion to avoid including the directories.
         # Ignore references to test targets, as those must be defined using `needs/target/*` or other target references.
         self.needs_file = tuple(sorted(set('/'.join(g.split('/')[2:]) for g in groups if
-                                           g.startswith('needs/file/') and not g.startswith('needs/file/test/integration/targets/'))))
+                                           g.startswith('needs/file/') and not g.startswith('needs/file/tests/integration/targets/'))))
 
         for group in itertools.islice(groups, 0, len(groups)):
             if '/' in group:

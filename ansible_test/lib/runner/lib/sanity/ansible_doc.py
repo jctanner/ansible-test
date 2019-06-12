@@ -105,6 +105,10 @@ class AnsibleDocTest(SanityMultipleVersion):
         error_messages = []
 
         for doc_type in sorted(doc_targets):
+
+            if doc_type == "module_utils":
+                continue
+
             cmd = ['ansible-doc', '-t', doc_type] + sorted(doc_targets[doc_type])
 
             try:

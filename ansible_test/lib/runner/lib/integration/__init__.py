@@ -41,6 +41,33 @@ from lib.cloud import (
 )
 
 
+INTEGRATION_CONFIG = '''[defaults]
+# allow cleanup handlers to run when tests fail
+force_handlers = True
+# force tests to set ansible_python_interpreter
+interpreter_python = /set/ansible_python_interpreter/in/inventory
+# prevent use of global inventory
+inventory = /dev/null
+
+[inventory]
+# prevent tests from unintentionally passing when hosts are not found
+host_pattern_mismatch = error
+'''
+
+INTEGRATION_CONFIG_YAML = '''---
+#win_output_dir: 'C:\\ansible_testing'
+output_dir: ~/ansible_testing
+'''
+
+INTEGRATION_INVENTORY = '''# Do not put test specific entries in this inventory file.
+# For script based test targets (using runme.sh) put the inventory file in the test's directory instead.
+
+[testgroup]
+# ansible_python_interpreter must be set to avoid interpreter discovery
+testhost ansible_connection=local ansible_python_interpreter="{{ ansible_playbook_python }}"
+'''
+
+
 def setup_common_temp_dir(args, path):
     """
     :type args: IntegrationConfig
@@ -53,6 +80,8 @@ def setup_common_temp_dir(args, path):
     os.chmod(path, MODE_DIRECTORY)
 
     coverage_config_path = os.path.join(path, COVERAGE_CONFIG_PATH)
+    if not os.path.exists(coverage_config_path):
+        return
 
     shutil.copy(COVERAGE_CONFIG_PATH, coverage_config_path)
     os.chmod(coverage_config_path, MODE_FILE)
@@ -125,7 +154,7 @@ def integration_test_environment(args, target, inventory_path):
     if args.no_temp_workdir or 'no/temp_workdir/' in target.aliases:
         display.warning('Disabling the temp work dir is a temporary debugging feature that may be removed in the future without notice.')
 
-        integration_dir = os.path.abspath('test/integration')
+        integration_dir = os.path.abspath('tests/integration')
         inventory_path = os.path.abspath(inventory_path)
         ansible_config = os.path.join(integration_dir, '%s.cfg' % args.command)
         vars_file = os.path.join(integration_dir, vars_file)
@@ -133,10 +162,12 @@ def integration_test_environment(args, target, inventory_path):
         yield IntegrationEnvironment(integration_dir, inventory_path, ansible_config, vars_file)
         return
 
-    root_temp_dir = os.path.expanduser('~/.ansible/test/tmp')
+    #root_temp_dir = os.path.expanduser('~/.ansible/test/tmp')
+    root_temp_dir = '/tmp/ansible_test'
 
     prefix = '%s-' % target.name
-    suffix = u'-\u00c5\u00d1\u015a\u00cc\u03b2\u0141\u00c8'
+    #suffix = u'-\u00c5\u00d1\u015a\u00cc\u03b2\u0141\u00c8'
+    suffix = u''
 
     if args.no_temp_unicode or 'no/temp_unicode/' in target.aliases:
         display.warning('Disabling unicode in the temp work dir is a temporary debugging feature that may be removed in the future without notice.')
@@ -168,19 +199,19 @@ def integration_test_environment(args, target, inventory_path):
 
         files_needed = get_files_needed(target_dependencies)
 
-        integration_dir = os.path.join(temp_dir, 'test/integration')
+        integration_dir = os.path.join(temp_dir, 'tests/integration')
         ansible_config = os.path.join(integration_dir, '%s.cfg' % args.command)
 
         file_copies = [
-            ('test/integration/%s.cfg' % args.command, ansible_config),
-            ('test/integration/integration_config.yml', os.path.join(integration_dir, vars_file)),
+            ('tests/integration/%s.cfg' % args.command, ansible_config),
+            ('tests/integration/integration_config.yml', os.path.join(integration_dir, vars_file)),
             (inventory_path, os.path.join(integration_dir, inventory_name)),
         ]
 
         file_copies += [(path, os.path.join(temp_dir, path)) for path in files_needed]
 
         directory_copies = [
-            (os.path.join('test/integration/targets', target.name), os.path.join(integration_dir, 'targets', target.name)) for target in target_dependencies
+            (os.path.join('tests/integration/targets', target.name), os.path.join(integration_dir, 'targets', target.name)) for target in target_dependencies
         ]
 
         inventory_dir = os.path.dirname(inventory_path)
@@ -209,9 +240,28 @@ def integration_test_environment(args, target, inventory_path):
         for file_src, file_dst in file_copies:
             display.info('Copying %s to %s' % (file_src, file_dst), verbosity=2)
 
+            '''
+            if not os.path.exists(file_src):
+                continue
+
             if not args.explain:
                 make_dirs(os.path.dirname(file_dst))
                 shutil.copy2(file_src, file_dst)
+            '''
+
+            if not args.explain:
+                make_dirs(os.path.dirname(file_dst))
+                if os.path.basename(file_dst) == 'inventory':
+                    with open(file_dst, 'w') as f:
+                        f.write(INTEGRATION_INVENTORY)
+                elif file_dst.endswith('.yml'):
+                    #import epdb; epdb.st()
+                    with open(file_dst, 'w') as f:
+                        f.write(INTEGRATION_CONFIG_YAML)
+                elif file_dst.endswith('.cfg'):
+                    #import epdb; epdb.st()
+                    with open(file_dst, 'w') as f:
+                        f.write(INTEGRATION_CONFIG)
 
         inventory_path = os.path.join(integration_dir, inventory_name)
         vars_file = os.path.join(integration_dir, vars_file)

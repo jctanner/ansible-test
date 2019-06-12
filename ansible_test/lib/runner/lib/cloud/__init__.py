@@ -148,7 +148,11 @@ def cloud_init(args, targets):
         )
 
     if not args.explain and results:
-        results_path = 'test/results/data/%s-%s.json' % (args.command, re.sub(r'[^0-9]', '-', str(datetime.datetime.utcnow().replace(microsecond=0))))
+        results_path = 'tests/results/data/%s-%s.json' % (args.command, re.sub(r'[^0-9]', '-', str(datetime.datetime.utcnow().replace(microsecond=0))))
+
+        results_dir = os.path.dirname(results_path)
+        if not os.path.exists(results_dir):
+            os.makedirs(results_dir)
 
         data = dict(
             clouds=results,
@@ -251,7 +255,7 @@ class CloudBase(ABC):
 
 class CloudProvider(CloudBase):
     """Base class for cloud provider plugins. Sets up cloud resources before delegation."""
-    TEST_DIR = 'test/integration'
+    TEST_DIR = 'tests/integration'
 
     def __init__(self, args, config_extension='.ini'):
         """

@@ -6,6 +6,7 @@ import json
 import os
 import collections
 import datetime
+import glob
 import re
 import time
 import textwrap
@@ -18,6 +19,7 @@ import filecmp
 import random
 import string
 import shutil
+import yaml
 
 import lib.pytar
 import lib.thread
@@ -286,8 +288,8 @@ def generate_pip_install(pip, command, packages=None):
     :type packages: list[str] | None
     :rtype: list[str] | None
     """
-    constraints = 'test/runner/requirements/constraints.txt'
-    requirements = 'test/runner/requirements/%s.txt' % command
+    constraints = 'tests/runner/requirements/constraints.txt'
+    requirements = 'tests/runner/requirements/%s.txt' % command
 
     options = []
 
@@ -323,7 +325,7 @@ def command_posix_integration(args):
     """
     :type args: PosixIntegrationConfig
     """
-    filename = 'test/integration/inventory'
+    filename = 'tests/integration/inventory'
 
     all_targets = tuple(walk_posix_integration_targets(include_hidden=True))
     internal_targets = command_integration_filter(args, all_targets)
@@ -951,14 +953,14 @@ def command_integration_filtered(args, targets, all_targets, inventory_path, pre
         if not args.explain:
             if args.coverage:
                 coverage_temp_path = os.path.join(common_temp_path, COVERAGE_OUTPUT_PATH)
-                coverage_save_path = 'test/results/coverage'
+                coverage_save_path = 'tests/results/coverage'
 
                 for filename in os.listdir(coverage_temp_path):
                     shutil.copy(os.path.join(coverage_temp_path, filename), os.path.join(coverage_save_path, filename))
 
             remove_tree(common_temp_path)
 
-            results_path = 'test/results/data/%s-%s.json' % (args.command, re.sub(r'[^0-9]', '-', str(datetime.datetime.utcnow().replace(microsecond=0))))
+            results_path = 'tests/results/data/%s-%s.json' % (args.command, re.sub(r'[^0-9]', '-', str(datetime.datetime.utcnow().replace(microsecond=0))))
 
             data = dict(
                 targets=results,
@@ -1149,7 +1151,7 @@ def integration_environment(args, target, test_dir, inventory_path, ansible_conf
     callback_plugins = ['junit'] + (env_config.callback_plugins or [] if env_config else [])
 
     integration = dict(
-        JUNIT_OUTPUT_DIR=os.path.abspath('test/results/junit'),
+        JUNIT_OUTPUT_DIR=os.path.abspath('tests/results/junit'),
         ANSIBLE_CALLBACK_WHITELIST=','.join(sorted(set(callback_plugins))),
         ANSIBLE_TEST_CI=args.metadata.ci_provider,
         ANSIBLE_TEST_COVERAGE='check' if args.coverage_check else ('yes' if args.coverage else ''),
@@ -1209,6 +1211,40 @@ def command_integration_script(args, target, test_dir, inventory_path, temp_path
             intercept_command(args, cmd, target_name=target.name, env=env, cwd=cwd, temp_path=temp_path, module_coverage=module_coverage)
 
 
+def copy_collection_to_playbook_dir(collection_path, playbook_dir_path):
+    galaxy_file = os.path.join(collection_path, 'galaxy.yml')
+    with open(galaxy_file, 'r') as f:
+        galaxy_data = yaml.load(f.read())
+
+    ns = galaxy_data['namespace']
+    name = galaxy_data['name']
+    content_dir = os.path.join(playbook_dir_path, 'collections', 'ansible_collections', ns, name)
+
+    if not os.path.exists(content_dir):
+        os.makedirs(content_dir)
+
+    c_files = glob.glob('%s/*' % collection_path)
+    c_files = [x for x in c_files if not x.endswith('tests')]
+    c_files = [x for x in c_files if not x.endswith('molecule')]
+
+    for c_file in c_files:
+        dst = os.path.join(content_dir, os.path.basename(c_file))
+        if os.path.isdir(c_file):
+            shutil.copytree(c_file, dst)
+        else:
+            shutil.copy(c_file, dst)
+
+    # create __init__.py files to workaround some nonsense
+    for fn in [
+        os.path.join(content_dir, 'plugins', 'modules', '__init__.py'),
+        os.path.join(content_dir, 'plugins', 'module_utils', '__init__.py')
+    ]:
+
+        if not os.path.exists(fn):
+            with open(fn, 'w') as f:
+                f.write('')
+
+
 def command_integration_role(args, target, start_at_task, test_dir, inventory_path, temp_path):
     """
     :type args: IntegrationConfig
@@ -1260,6 +1296,10 @@ def command_integration_role(args, target, start_at_task, test_dir, inventory_pa
 
         with named_temporary_file(args=args, directory=test_env.integration_dir, prefix='%s-' % target.name, suffix='.yml', content=playbook) as playbook_path:
             filename = os.path.basename(playbook_path)
+
+            # copy the collection to a playbook adjacent dir structure
+            playbook_dir_path = os.path.dirname(playbook_path)
+            copy_collection_to_playbook_dir(os.getcwd(), playbook_dir_path) 
 
             display.info('>>> Playbook: %s\n%s' % (filename, playbook.strip()), verbosity=3)
 
@@ -1327,7 +1367,7 @@ def command_units(args):
             '--color',
             'yes' if args.color else 'no',
             '--junit-xml',
-            'test/results/junit/python%s-units.xml' % version,
+            'tests/results/junit/python%s-units.xml' % version,
         ]
 
         if args.collect_only:
@@ -1797,7 +1837,7 @@ class EnvironmentDescription(object):
 
         python_paths = dict((v, find_executable('python%s' % v, required=False)) for v in sorted(versions))
         pip_paths = dict((v, find_executable('pip%s' % v, required=False)) for v in sorted(versions))
-        program_versions = dict((v, self.get_version([python_paths[v], 'test/runner/versions.py'], warnings)) for v in sorted(python_paths) if python_paths[v])
+        program_versions = dict((v, self.get_version([python_paths[v], 'tests/runner/versions.py'], warnings)) for v in sorted(python_paths) if python_paths[v])
         pip_interpreters = dict((v, self.get_shebang(pip_paths[v])) for v in sorted(pip_paths) if pip_paths[v])
         known_hosts_hash = self.get_hash(os.path.expanduser('~/.ssh/known_hosts'))
 
